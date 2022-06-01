@@ -11,7 +11,13 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+import os
+from corsheaders.defaults import default_headers
 
+CORS_ALLOW_HEADERS = default_headers + (
+    'Access-Control-Allow-Origin',
+)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,7 +31,7 @@ SECRET_KEY = 'django-insecure-s3#8&=3q$j1jinxzamb5yw)ch2gnz&x2mx#)(jf6=y2*uh3c+^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['cloud-computing-sep6.ew.r.appspot.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -38,23 +44,25 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+    'rest_framework_simplejwt',
     'rest_framework',
-    'corsheaders',
+    
 ]
 
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
 ]
+CORS_ORIGIN_ALLOW_ALL = True
 
-CORS_ALLOW_ALL_ORIGINS = True
+
 
 ROOT_URLCONF = 'SEP6.urls'
 
@@ -80,16 +88,76 @@ WSGI_APPLICATION = 'SEP6.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# [START db_setup]
+if os.getenv('GAE_APPLICATION', None):
+    # Running on production App Engine, so connect to Google Cloud SQL using
+    # the unix socket at /cloudsql/<your-cloudsql-connection string>
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'HOST': '/cloudsql/cloud-computing-sep6:europe-west1:movies2',
+            'USER': 'Pablo',
+            'PASSWORD': '293167',
+            'NAME': 'moviesDB',
+        }
     }
+else:
+    # Running locally so connect to either a local MySQL instance or connect 
+    # to Cloud SQL via the proxy.  To start the proxy via command line: 
+    #    $ cloud_sql_proxy -instances=[INSTANCE_CONNECTION_NAME]=tcp:3306 
+    # See https://cloud.google.com/sql/docs/mysql-connect-proxy
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'HOST': '127.0.0.1',
+            'PORT': '3306',
+            'NAME': 'moviesDB',
+            'USER': 'Pablo',
+            'PASSWORD': '293167',
+        }
+    }
+# [END db_setup]
+#Pablo1234 Password for superuser
+
+# Password validation
+# https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=20),
+    # 'ROTATE_REFRESH_TOKENS': False,
+    # 'BLACKLIST_AFTER_ROTATION': True,
+
+    'ALGORITHM': 'HS256',
+    # 'SIGNING_KEY': SECRET_KEY,
+    # 'VERIFYING_KEY': None,
+    # 'AUDIENCE': None,
+    # 'ISSUER': None,
+
+    # 'AUTH_HEADER_TYPES': ('Bearer',),
+    # 'USER_ID_FIELD': 'id',
+    # 'USER_ID_CLAIM': 'user_id',
+
+    # 'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    # 'TOKEN_TYPE_CLAIM': 'token_type',
+
+    # 'JTI_CLAIM': 'jti',
+    # 'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+}
+
+# Rest Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ]
 }
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -107,6 +175,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
@@ -122,7 +191,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
